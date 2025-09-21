@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蒲丰投针实验 | 概率模拟器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366F1', // 靛蓝色作为主色调
+                        secondary: '#EC4899', // 粉色作为辅助色
+                        accent: '#10B981', // 绿色作为强调色
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass-effect {
+                background: rgba(255, 255, 255, 0.15);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+            }
+            .gradient-border {
+                position: relative;
+                border-radius: 0.75rem;
+                z-index: 0;
+            }
+            .gradient-border::before {
+                content: "";
+                position: absolute;
+                inset: -2px;
+                border-radius: 0.85rem;
+                background: linear-gradient(135deg, #6366F1, #EC4899, #10B981);
+                z-index: -1;
+                animation: rotate 6s linear infinite;
+            }
+            @keyframes rotate {
+                0% { filter: hue-rotate(0deg); }
+                100% { filter: hue-rotate(360deg); }
+            }
+        }
+    </style>
+    <!-- 引入Poppins字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="font-sans bg-gradient-to-br from-light to-slate-100 min-h-screen text-dark overflow-x-hidden">
+    <!-- 装饰元素 -->
+    <div class="fixed -top-20 -right-20 w-80 h-80 bg-primary/10 rounded-full blur-3xl"></div>
+    <div class="fixed -bottom-32 -left-32 w-96 h-96 bg-secondary/10 rounded-full blur-3xl"></div>
+    
+    <!-- 顶部导航 -->
+    <header class="glass-effect sticky top-0 z-50 transition-all duration-300 shadow-lg">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+                    <i class="fa fa-calculator text-white text-xl"></i>
+                </div>
+                <h1 class="text-[clamp(1.2rem,3vw,1.6rem)] font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+                    蒲丰投针模拟器
+                </h1>
+            </div>
+            <nav class="hidden md:flex">
+                <ul class="flex space-x-8">
+                    <li><a href="#about" class="hover:text-primary transition-all duration-300 relative group">
+                        关于实验
+                        <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                    </a></li>
+                    <li><a href="#simulator" class="hover:text-primary transition-all duration-300 relative group">
+                        实验演示
+                        <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                    </a></li>
+                    <li><a href="#explanation" class="hover:text-primary transition-all duration-300 relative group">
+                        数学原理
+                        <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                    </a></li>
+                </ul>
+            </nav>
+            <button class="md:hidden text-dark text-xl" id="mobileMenuBtn">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+        <!-- 移动端菜单 -->
+        <div id="mobileMenu" class="hidden md:hidden glass-effect border-t border-white/10">
+            <div class="container mx-auto px-4 py-3">
+                <ul class="space-y-3 py-2">
+                    <li><a href="#about" class="block hover:text-primary transition-all duration-300 py-1"><i class="fa fa-info-circle mr-2"></i>关于实验</a></li>
+                    <li><a href="#simulator" class="block hover:text-primary transition-all duration-300 py-1"><i class="fa fa-flask mr-2"></i>实验演示</a></li>
+                    <li><a href="#explanation" class="block hover:text-primary transition-all duration-300 py-1"><i class="fa fa-lightbulb-o mr-2"></i>数学原理</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="container mx-auto px-4 py-12 relative z-10">
+        <!-- 页面标题 -->
+        <div class="text-center mb-16 max-w-3xl mx-auto">
+            <h1 class="text-[clamp(1.8rem,5vw,3rem)] font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent">
+                蒲丰投针实验
+            </h1>
+            <p class="text-slate-600 text-lg">通过概率实验估算圆周率π的经典几何概率模型</p>
+            <div class="w-24 h-1 bg-gradient-to-r from-primary to-secondary mx-auto mt-6 rounded-full"></div>
+        </div>
+
+        <!-- 介绍部分 -->
+        <section id="about" class="mb-16">
+            <div class="gradient-border">
+                <div class="bg-white rounded-xl p-8 shadow-xl">
+                    <div class="flex flex-col md:flex-row gap-8 items-center">
+                        <div class="md:w-1/2">
+                            <h2 class="text-2xl font-bold mb-6 text-primary flex items-center">
+                                <span class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                    <i class="fa fa-history text-primary"></i>
+                                </span>
+                                实验背景
+                            </h2>
+                            <p class="mb-4 text-slate-700 leading-relaxed">
+                                蒲丰投针实验由18世纪法国数学家乔治-路易·勒克莱尔（Comte de Buffon）设计，是最早将概率理论与几何图形结合的经典实验之一。
+                            </p>
+                            <p class="mb-4 text-slate-700 leading-relaxed">
+                                实验通过随机投掷针与平行线相交的概率来估算圆周率π，展现了概率与几何之间的奇妙联系。
+                            </p>
+                            <div class="bg-primary/5 p-4 rounded-lg border border-primary/20 mt-6">
+                                <p class="text-sm text-slate-600 italic">
+                                    "数学的魅力在于，看似无关的领域往往存在深刻的内在联系。"
+                                </p>
+                            </div>
+                        </div>
+                        <div class="md:w-1/2">
+                            <div class="relative h-64 md:h-80 rounded-xl overflow-hidden shadow-lg">
+                                <div class="absolute inset-0 bg-gradient-to-tr from-primary/20 to-secondary/20 mix-blend-overlay"></div>
+                                <canvas id="aboutCanvas" class="w-full h-full"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 模拟器部分 -->
+        <section id="simulator" class="mb-16">
+            <h2 class="text-2xl font-bold mb-8 text-primary flex items-center">
+                <span class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                    <i class="fa fa-play-circle text-primary"></i>
+                </span>
+                交互式实验演示
+            </h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- 控制面板 -->
+                <div class="lg:col-span-4">
+                    <div class="bg-white rounded-xl p-6 shadow-xl card-hover h-full">
+                        <h3 class="text-xl font-semibold mb-6 pb-3 border-b border-slate-100 text-dark">
+                            实验控制中心
+                        </h3>
+                        
+                        <!-- 参数设置 -->
+                        <div class="mb-8">
+                            <h4 class="text-base font-medium mb-4 text-slate-700 flex items-center">
+                                <i class="fa fa-sliders text-primary mr-2"></i>参数设置
+                            </h4>
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <label for="needleLength" class="text-sm text-slate-600">针长度 (l)</label>
+                                        <span id="needleLengthValue" class="text-sm font-medium text-primary">5</span>
+                                    </div>
+                                    <input type="range" id="needleLength" min="1" max="9" value="5" 
+                                        class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary">
+                                    <div class="flex justify-between text-xs text-slate-400 mt-1">
+                                        <span>短</span>
+                                        <span>长</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <label for="lineDistance" class="text-sm text-slate-600">线间距 (d)</label>
+                                        <span id="lineDistanceValue" class="text-sm font-medium text-primary">10</span>
+                                    </div>
+                                    <input type="range" id="lineDistance" min="2" max="10" value="10" 
+                                        class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary">
+                                    <div class="flex justify-between text-xs text-slate-400 mt-1">
+                                        <span>密</span>
+                                        <span>疏</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <label for="throwCount" class="text-sm text-slate-600">每次投掷数量</label>
+                                        <span id="throwCountValue" class="text-sm font-medium text-primary">1</span>
+                                    </div>
+                                    <input type="range" id="throwCount" min="1" max="1000" value="1" step="1"
+                                        class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary">
+                                    <div class="flex justify-between text-xs text-slate-400 mt-1">
+                                        <span>少</span>
+                                        <span>多</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 控制按钮 -->
+                        <div class="flex flex-col space-y-3 mb-8">
+                            <button id="throwOnce" class="bg-primary hover:bg-primary/90 text-white py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-lg shadow-primary/20">
+                                <i class="fa fa-play mr-2"></i>单次投掷
+                            </button>
+                            <button id="throwMultiple" class="bg-secondary hover:bg-secondary/90 text-white py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-lg shadow-secondary/20">
+                                <i class="fa fa-repeat mr-2"></i>批量投掷
+                            </button>
+                            <button id="resetExperiment" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center">
+                                <i class="fa fa-refresh mr-2"></i>重置实验
+                            </button>
+                        </div>
+                        
+                        <!-- 实验数据 -->
+                        <div class="bg-slate-50 rounded-lg p-5 border border-slate-100">
+                            <h4 class="text-base font-medium mb-4 pb-2 border-b border-slate-100 text-slate-700">
+                                实验数据
+                            </h4>
+                            
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600 flex items-center">
+                                        <i class="fa fa-circle-o text-slate-400 mr-2"></i>总投掷次数
+                                    </span>
+                                    <span id="totalThrows" class="font-bold text-lg">0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600 flex items-center">
+                                        <i class="fa fa-random text-slate-400 mr-2"></i>相交次数
+                                    </span>
+                                    <span id="intersectionCount" class="font-bold text-lg text-secondary">0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600 flex items-center">
+                                        <i class="fa fa-percent text-slate-400 mr-2"></i>相交概率
+                                    </span>
+                                    <span id="probability" class="font-bold text-lg">0</span>
+                                </div>
+                                <div class="pt-3 border-t border-slate-100 mt-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-600 flex items-center">
+                                            <i class="fa fa-pi text-slate-400 mr-2"></i>估算π值
+                                        </span>
+                                        <span id="piEstimate" class="font-bold text-lg text-primary">0</span>
+                                    </div>
+                                    <div class="flex justify-end mt-1">
+                                        <span class="text-xs text-slate-400">参考值: 3.1415926535</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 模拟区域和图表 -->
+                <div class="lg:col-span-8 space-y-8">
+                    <!-- 模拟区域 -->
+                    <div class="bg-white rounded-xl p-6 shadow-xl card-hover">
+                        <h3 class="text-xl font-semibold mb-4 text-dark flex items-center">
+                            <i class="fa fa-area-chart text-primary mr-2"></i>模拟区域
+                        </h3>
+                        <div class="relative bg-slate-50 rounded-xl overflow-hidden border border-slate-100" style="height: 400px;">
+                            <canvas id="simulationCanvas" class="w-full h-full"></canvas>
+                            <div id="loadingIndicator" class="absolute inset-0 flex items-center justify-center bg-white/80 z-10 hidden">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    <p class="mt-3 text-primary font-medium">模拟进行中...</p>
+                                </div>
+                            </div>
+                            <div id="initialMessage" class="absolute inset-0 flex flex-col items-center justify-center z-0 p-6 text-center">
+                                <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 animate-float">
+                                    <i class="fa fa-hand-pointer-o text-primary text-2xl"></i>
+                                </div>
+                                <p class="text-slate-400 max-w-md">点击"单次投掷"或"批量投掷"按钮开始实验</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 图表展示 -->
+                    <div class="bg-white rounded-xl p-6 shadow-xl card-hover">
+                        <h3 class="text-xl font-semibold mb-4 text-dark flex items-center">
+                            <i class="fa fa-line-chart text-primary mr-2"></i>π值估算趋势
+                        </h3>
+                        <div class="bg-slate-50 rounded-xl p-4 border border-slate-100" style="height: 320px;">
+                            <canvas id="piChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 原理说明 -->
+        <section id="explanation" class="mb-16">
+            <div class="gradient-border">
+                <div class="bg-white rounded-xl p-8 shadow-xl">
+                    <h2 class="text-2xl font-bold mb-6 text-primary flex items-center">
+                        <span class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                            <i class="fa fa-calculator text-primary"></i>
+                        </span>
+                        数学原理
+                    </h2>
+                    
+                    <div class="prose max-w-none text-slate-700">
+                        <p class="mb-6 leading-relaxed">
+                            蒲丰投针实验的核心是通过概率计算来估算圆周率π值。这个实验展现了随机性与确定性数学常数之间的奇妙联系。
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            <div class="bg-slate-50 p-5 rounded-lg border border-slate-100">
+                                <h3 class="text-lg font-semibold mb-3 text-dark">实验假设</h3>
+                                <ul class="space-y-2">
+                                    <li class="flex items-start">
+                                        <span class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5 mr-2 flex-shrink-0">1</span>
+                                        <span>平行线之间的距离为d</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5 mr-2 flex-shrink-0">2</span>
+                                        <span>针的长度为l（l &lt; d）</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5 mr-2 flex-shrink-0">3</span>
+                                        <span>针的中点到最近平行线的距离为x（0 ≤ x ≤ d/2）</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5 mr-2 flex-shrink-0">4</span>
+                                        <span>针与平行线的夹角为θ（0 ≤ θ ≤ π/2）</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="bg-slate-50 p-5 rounded-lg border border-slate-100">
+                                <h3 class="text-lg font-semibold mb-3 text-dark">相交条件</h3>
+                                <p class="mb-3">当满足以下条件时，针会与平行线相交：</p>
+                                <div class="text-center my-4">
+                                    <p class="font-mono bg-white px-3 py-2 rounded-lg inline-block text-primary">x ≤ (l/2)·sinθ</p>
+                                </div>
+                                <p>通过积分计算所有可能情况，可推导出相交概率公式。</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold mb-3 text-dark">概率与π的关系</h3>
+                            <p class="mb-4">通过积分计算，针与平行线相交的概率为：</p>
+                            <div class="text-center my-4">
+                                <p class="font-mono bg-slate-50 px-4 py-2 rounded-lg inline-block text-lg">P = 2l/(πd)</p>
+                            </div>
+                            
+                            <p class="mb-4">通过实验得到频率来近似概率P ≈ K/N（K为相交次数，N为总投掷次数），可以推导出：</p>
+                            <div class="text-center my-6">
+                                <p class="font-mono bg-primary/5 px-4 py-3 rounded-lg inline-block text-lg border border-primary/20">π ≈ 2lN/(dK)</p>
+                            </div>
+                        </div>
+                        
+                        <p class="leading-relaxed">
+                            随着投掷次数的增加，根据大数定律，估算的π值会越来越接近真实值。这正是概率统计方法在数学常数计算中应用的经典范例。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-12 relative z-10">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+                            <i class="fa fa-calculator text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">蒲丰投针模拟器</h3>
+                    </div>
+                    <p class="text-slate-400 mb-4">
+                        一个交互式的概率实验工具，通过模拟蒲丰投针实验直观展示概率与圆周率的关系。
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-8 h-8 rounded-full bg-slate-700 hover:bg-primary flex items-center justify-center transition-all duration-300">
+                            <i class="fa fa-github"></i>
+                        </a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-slate-700 hover:bg-primary flex items-center justify-center transition-all duration-300">
+                            <i class="fa fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-slate-700 hover:bg-primary flex items-center justify-center transition-all duration-300">
+                            <i class="fa fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">快速导航</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#about" class="text-slate-400 hover:text-white transition-all duration-300">关于实验</a></li>
+                        <li><a href="#simulator" class="text-slate-400 hover:text-white transition-all duration-300">实验演示</a></li>
+                        <li><a href="#explanation" class="text-slate-400 hover:text-white transition-all duration-300">数学原理</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">关于</h4>
+                    <p class="text-slate-400 mb-2">
+                        本模拟器旨在通过交互式体验，帮助理解概率统计与几何数学的内在联系。
+                    </p>
+                    <p class="text-slate-500 text-sm mt-6">
+                        © 2025 蒲丰投针模拟器 | 概率统计教学工具
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 等待DOM加载完成
+        document.addEventListener('DOMContentLoaded', () => {
+            // 获取DOM元素
+            const canvas = document.getElementById('simulationCanvas');
+            const ctx = canvas ? canvas.getContext('2d') : null;
+            const aboutCanvas = document.getElementById('aboutCanvas');
+            const aboutCtx = aboutCanvas ? aboutCanvas.getContext('2d') : null;
+            const needleLengthSlider = document.getElementById('needleLength');
+            const needleLengthValue = document.getElementById('needleLengthValue');
+            const lineDistanceSlider = document.getElementById('lineDistance');
+            const lineDistanceValue = document.getElementById('lineDistanceValue');
+            const throwCountSlider = document.getElementById('throwCount');
+            const throwCountValue = document.getElementById('throwCountValue');
+            const throwOnceBtn = document.getElementById('throwOnce');
+            const throwMultipleBtn = document.getElementById('throwMultiple');
+            const resetBtn = document.getElementById('resetExperiment');
+            const totalThrowsEl = document.getElementById('totalThrows');
+            const intersectionCountEl = document.getElementById('intersectionCount');
+            const probabilityEl = document.getElementById('probability');
+            const piEstimateEl = document.getElementById('piEstimate');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const initialMessage = document.getElementById('initialMessage');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            
+            // 实验参数和状态
+            let needleLength = parseInt(needleLengthSlider.value);
+            let lineDistance = parseInt(lineDistanceSlider.value);
+            let throwCount = parseInt(throwCountSlider.value);
+            let totalThrows = 0;
+            let intersectionCount = 0;
+            let needles = [];
+            let isThrowing = false;
+            let piHistory = [];
+            
+            // 绘制介绍部分的Canvas动画
+            function initAboutCanvas() {
+                if (!aboutCanvas || !aboutCtx) return;
+                
+                // 设置尺寸
+                aboutCanvas.width = aboutCanvas.parentElement.clientWidth;
+                aboutCanvas.height = aboutCanvas.parentElement.clientHeight;
+                
+                // 绘制示例针和线
+                const draw = () => {
+                    if (!aboutCtx) return;
+                    
+                    aboutCtx.clearRect(0, 0, aboutCanvas.width, aboutCanvas.height);
+                    
+                    // 绘制平行线
+                    aboutCtx.strokeStyle = 'rgba(99, 102, 241, 0.3)';
+                    aboutCtx.lineWidth = 2;
+                    
+                    const lineDist = 40;
+                    const startY = aboutCanvas.height / 4;
+                    const linesCount = 5;
+                    
+                    for (let i = 0; i < linesCount; i++) {
+                        const y = startY + i * lineDist;
+                        aboutCtx.beginPath();
+                        aboutCtx.moveTo(aboutCanvas.width / 4, y);
+                        aboutCtx.lineTo(aboutCanvas.width * 3 / 4, y);
+                        aboutCtx.stroke();
+                    }
+                    
+                    // 绘制示例针
+                    const centerX = aboutCanvas.width / 2;
+                    const centerY = aboutCanvas.height / 2;
+                    const needleLen = 30;
+                    
+                    // 动画角度
+                    const angle = Date.now() / 1000;
+                    
+                    // 相交的针（橙色）
+                    aboutCtx.beginPath();
+                    aboutCtx.moveTo(
+                        centerX - needleLen * Math.cos(angle),
+                        centerY - needleLen * Math.sin(angle)
+                    );
+                    aboutCtx.lineTo(
+                        centerX + needleLen * Math.cos(angle),
+                        centerY + needleLen * Math.sin(angle)
+                    );
+                    aboutCtx.strokeStyle = 'rgba(236, 72, 153, 0.8)';
+                    aboutCtx.lineWidth = 3;
+                    aboutCtx.stroke();
+                    
+                    // 不相交的针（蓝色）
+                    aboutCtx.beginPath();
+                    aboutCtx.moveTo(
+                        centerX - 50 - needleLen * Math.cos(angle + Math.PI/2),
+                        centerY - needleLen * Math.sin(angle + Math.PI/2)
+                    );
+                    aboutCtx.lineTo(
+                        centerX - 50 + needleLen * Math.cos(angle + Math.PI/2),
+                        centerY + needleLen * Math.sin(angle + Math.PI/2)
+                    );
+                    aboutCtx.strokeStyle = 'rgba(99, 102, 241, 0.8)';
+                    aboutCtx.lineWidth = 3;
+                    aboutCtx.stroke();
+                    
+                    requestAnimationFrame(draw);
+                };
+                
+                draw();
+                
+                // 响应窗口大小变化
+                window.addEventListener('resize', () => {
+                    if (aboutCanvas) {
+                        aboutCanvas.width = aboutCanvas.parentElement.clientWidth;
+                        aboutCanvas.height = aboutCanvas.parentElement.clientHeight;
+                    }
+                });
+            }
+            
+            // 初始化介绍部分动画
+            initAboutCanvas();
+            
+            // 移动端菜单切换
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            // 平滑滚动
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    
+                    if (targetElement) {
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                        
+                        // 关闭移动菜单
+                        if (!mobileMenu.classList.contains('hidden')) {
+                            mobileMenu.classList.add('hidden');
+                        }
+                    }
+                });
+            });
+            
+            // 设置Canvas尺寸
+            function resizeCanvas() {
+                if (!canvas) return;
+                
+                const container = canvas.parentElement;
+                if (!container) return;
+                
+                // 获取容器的计算样式
+                const containerStyle = getComputedStyle(container);
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                // 考虑容器的内边距
+                const paddingLeft = parseFloat(containerStyle.paddingLeft);
+                const paddingRight = parseFloat(containerStyle.paddingRight);
+                const paddingTop = parseFloat(containerStyle.paddingTop);
+                const paddingBottom = parseFloat(containerStyle.paddingBottom);
+                
+                // 计算可用宽度和高度
+                const availableWidth = width - paddingLeft - paddingRight;
+                const availableHeight = height - paddingTop - paddingBottom;
+                
+                // 设置Canvas的实际尺寸
+                canvas.width = availableWidth;
+                canvas.height = availableHeight;
+                
+                // 设置Canvas的CSS尺寸，确保显示正确
+                canvas.style.width = `${availableWidth}px`;
+                canvas.style.height = `${availableHeight}px`;
+                
+                // 重新绘制场景
+                drawScene();
+            }
+            
+            // 初始化时调整一次尺寸，并监听窗口大小变化
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // 初始化π值趋势图
+            const piChartCtx = document.getElementById('piChart').getContext('2d');
+            const piChart = new Chart(piChartCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '估算π值',
+                        data: [],
+                        borderColor: '#6366F1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 2.5,
+                        pointRadius: 0,
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: '实际π值',
+                        data: [],
+                        borderColor: '#EC4899',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        tension: 0,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 2,
+                            max: 4,
+                            title: {
+                                display: true,
+                                text: 'π值'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '投掷次数'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    animation: {
+                        duration: 500
+                    }
+                }
+            });
+            
+            // 更新滑块显示值
+            needleLengthSlider.addEventListener('input', () => {
+                needleLength = parseInt(needleLengthSlider.value);
+                needleLengthValue.textContent = needleLength;
+            });
+            
+            lineDistanceSlider.addEventListener('input', () => {
+                lineDistance = parseInt(lineDistanceSlider.value);
+                lineDistanceValue.textContent = lineDistance;
+            });
+            
+            throwCountSlider.addEventListener('input', () => {
+                throwCount = parseInt(throwCountSlider.value);
+                throwCountValue.textContent = throwCount;
+            });
+            
+            // 绘制场景（平行线和所有针）
+            function drawScene() {
+                if (!ctx) return;
+                
+                // 清空画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制平行线（虚线样式）
+                ctx.strokeStyle = 'rgba(156, 163, 175, 0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([5, 3]);
+                
+                // 计算需要绘制的线条数量
+                const linesCount = Math.ceil(canvas.height / lineDistance) + 1;
+                for (let i = 0; i < linesCount; i++) {
+                    const y = i * lineDistance;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+                
+                // 重置线条样式为实线
+                ctx.setLineDash([]);
+                
+                // 绘制针（最新的针有动画效果）
+                needles.forEach((needle, index) => {
+                    // 针的透明度随时间变化，新针更明显
+                    const opacity = Math.min(1, 1 - (index / needles.length) * 0.8);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(needle.x1, needle.y1);
+                    ctx.lineTo(needle.x2, needle.y2);
+                    
+                    // 相交的针用辅助色，普通针用主色
+                    ctx.strokeStyle = needle.intersected 
+                        ? `rgba(236, 72, 153, ${opacity})` 
+                        : `rgba(99, 102, 241, ${opacity})`;
+                    
+                    // 线宽随时间变化
+                    const lineWidth = Math.max(1, 2 - (index / needles.length) * 1);
+                    ctx.lineWidth = lineWidth;
+                    
+                    ctx.stroke();
+                });
+                
+                // 根据是否有针显示初始信息
+                if (needles.length === 0) {
+                    initialMessage.classList.remove('hidden');
+                } else {
+                    initialMessage.classList.add('hidden');
+                }
+            }
+            
+            // 投掷一根针
+            function throwNeedle() {
+                if (!canvas) return null;
+                
+                // 随机生成针的中点位置
+                const centerX = Math.random() * canvas.width;
+                const centerY = Math.random() * canvas.height;
+                
+                // 随机生成针与水平线的夹角（弧度）
+                const angle = Math.random() * Math.PI;
+                
+                // 计算针的两个端点
+                const halfLength = needleLength / 2;
+                const x1 = centerX - halfLength * Math.cos(angle);
+                const y1 = centerY - halfLength * Math.sin(angle);
+                const x2 = centerX + halfLength * Math.cos(angle);
+                const y2 = centerY + halfLength * Math.sin(angle);
+                
+                // 检查是否与平行线相交
+                const intersected = checkIntersection(y1, y2);
+                
+                // 记录针的信息
+                const needle = { x1, y1, x2, y2, intersected, timestamp: Date.now() };
+                needles.push(needle);
+                
+                // 限制针的总数，保持性能
+                if (needles.length > 10000) {
+                    needles.shift(); // 移除最旧的针
+                }
+                
+                // 更新统计数据
+                totalThrows++;
+                if (intersected) {
+                    intersectionCount++;
+                }
+                
+                return needle;
+            }
+            
+            // 检查针是否与任何平行线相交
+            function checkIntersection(y1, y2) {
+                // 确保y1 <= y2以便简化计算
+                if (y1 > y2) {
+                    [y1, y2] = [y2, y1];
+                }
+                
+                // 找到y1下方最近的平行线
+                const nearestLineBelow = Math.floor(y1 / lineDistance) * lineDistance;
+                
+                // 检查从最近的线开始，是否有任何线穿过针
+                for (let y = nearestLineBelow; y <= y2; y += lineDistance) {
+                    if (y >= y1 && y <= y2) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            // 更新统计信息显示（带动画效果）
+            function updateStats() {
+                // 数字动画效果
+                function animateValue(element, start, end, duration) {
+                    let startTimestamp = null;
+                    const step = (timestamp) => {
+                        if (!startTimestamp) startTimestamp = timestamp;
+                        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                        const value = progress * (end - start) + start;
+                        
+                        // 根据元素决定显示格式
+                        if (element.id === 'probability') {
+                            element.textContent = value.toFixed(6);
+                        } else if (element.id === 'piEstimate') {
+                            element.textContent = value.toFixed(6);
+                        } else {
+                            element.textContent = Math.floor(value);
+                        }
+                        
+                        if (progress < 1) {
+                            window.requestAnimationFrame(step);
+                        }
+                    };
+                    window.requestAnimationFrame(step);
+                }
+                
+                // 获取当前显示值
+                const currentTotal = parseInt(totalThrowsEl.textContent) || 0;
+                const currentIntersection = parseInt(intersectionCountEl.textContent) || 0;
+                const currentProbability = parseFloat(probabilityEl.textContent) || 0;
+                const currentPi = parseFloat(piEstimateEl.textContent) || 0;
+                
+                // 计算新值
+                const newProbability = totalThrows > 0 ? (intersectionCount / totalThrows) : 0;
+                let newPi = 0;
+                if (intersectionCount > 0) {
+                    newPi = (2 * needleLength * totalThrows) / (lineDistance * intersectionCount);
+                }
+                
+                // 应用动画
+                animateValue(totalThrowsEl, currentTotal, totalThrows, 500);
+                animateValue(intersectionCountEl, currentIntersection, intersectionCount, 500);
+                animateValue(probabilityEl, currentProbability, newProbability, 500);
+                animateValue(piEstimateEl, currentPi, newPi, 500);
+                
+                // 记录π值历史，用于图表展示
+                if (totalThrows % 10 === 0 || totalThrows < 100) {
+                    piHistory.push({
+                        throws: totalThrows,
+                        pi: newPi
+                    });
+                    
+                    // 更新图表
+                    updatePiChart();
+                }
+            }
+            
+            // 更新π值趋势图
+            function updatePiChart() {
+                // 限制数据点数量，保持图表性能
+                const maxDataPoints = 1000;
+                const displayData = piHistory.slice(-maxDataPoints);
+                
+                piChart.data.labels = displayData.map(item => item.throws);
+                piChart.data.datasets[0].data = displayData.map(item => item.pi);
+                piChart.data.datasets[1].data = displayData.map(() => Math.PI);
+                
+                piChart.update();
+            }
+            
+            // 投掷多次针（带动画）
+            async function throwNeedles(count, animate = true) {
+                if (isThrowing) return;
+                
+                isThrowing = true;
+                throwOnceBtn.disabled = true;
+                throwMultipleBtn.disabled = true;
+                needleLengthSlider.disabled = true;
+                lineDistanceSlider.disabled = true;
+                throwCountSlider.disabled = true;
+                
+                // 对于大量投掷，显示加载指示器
+                if (count > 100) {
+                    loadingIndicator.classList.remove('hidden');
+                }
+                
+                // 分批次投掷，避免浏览器卡顿
+                const batchSize = animate ? 10 : 1000;
+                let remaining = count;
+                
+                try {
+                    while (remaining > 0) {
+                        const batch = Math.min(remaining, batchSize);
+                        
+                        for (let i = 0; i < batch; i++) {
+                            throwNeedle();
+                        }
+                        
+                        // 更新显示
+                        updateStats();
+                        
+                        // 如果需要动画效果，绘制并短暂等待
+                        if (animate) {
+                            drawScene();
+                            // 使用requestAnimationFrame确保平滑动画
+                            await new Promise(resolve => requestAnimationFrame(() => 
+                                setTimeout(resolve, 10)
+                            ));
+                        }
+                        
+                        remaining -= batch;
+                    }
+                } catch (error) {
+                    console.error("投掷过程中出错:", error);
+                } finally {
+                    // 最后绘制一次完整场景
+                    drawScene();
+                    
+                    // 隐藏加载指示器
+                    loadingIndicator.classList.add('hidden');
+                    
+                    isThrowing = false;
+                    throwOnceBtn.disabled = false;
+                    throwMultipleBtn.disabled = false;
+                    needleLengthSlider.disabled = false;
+                    lineDistanceSlider.disabled = false;
+                    throwCountSlider.disabled = false;
+                }
+            }
+            
+            // 重置实验
+            function resetExperiment() {
+                if (isThrowing) return;
+                
+                // 添加淡出动画
+                if (ctx) {
+                    let opacity = 1;
+                    const fadeOut = () => {
+                        opacity -= 0.1;
+                        ctx.globalAlpha = opacity;
+                        drawScene();
+                        
+                        if (opacity > 0) {
+                            requestAnimationFrame(fadeOut);
+                        } else {
+                            // 重置所有数据
+                            needles = [];
+                            totalThrows = 0;
+                            intersectionCount = 0;
+                            piHistory = [];
+                            
+                            updateStats();
+                            ctx.globalAlpha = 1;
+                            drawScene();
+                            
+                            // 重置图表
+                            piChart.data.labels = [];
+                            piChart.data.datasets[0].data = [];
+                            piChart.data.datasets[1].data = [];
+                            piChart.update();
+                        }
+                    };
+                    
+                    fadeOut();
+                }
+            }
+            
+            // 绑定事件监听器
+            throwOnceBtn.addEventListener('click', () => {
+                throwNeedles(throwCount, true);
+            });
+            
+            throwMultipleBtn.addEventListener('click', () => {
+                // 连续投掷10000次，不显示每个针的动画以提高性能
+                throwNeedles(10000, false);
+            });
+            
+            resetBtn.addEventListener('click', resetExperiment);
+            
+            // 初始绘制
+            drawScene();
+            
+            // 窗口大小变化时重新绘制
+            window.addEventListener('resize', drawScene);
+        });
+    </script>
+</body>
+</html>
